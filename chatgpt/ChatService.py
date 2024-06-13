@@ -4,6 +4,7 @@ import types
 import uuid
 
 import websockets
+from websockets_proxy import Proxy, proxy_connect
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 
@@ -295,7 +296,10 @@ class ChatService:
                 if self.wss_mode:
                     if not self.wss_url:
                         self.wss_url = await self.get_wss_url()
-                    self.ws = await websockets.connect(self.wss_url, ping_interval=None, subprotocols=["json.reliable.webpubsub.azure.v1"])
+
+                    self.ws = await proxy_connect(self.wss_url, ping_interval=None,
+                                                  subprotocols=["json.reliable.webpubsub.azure.v1"],
+                                                  proxy=Proxy.from_url(self.proxy_url))
             except Exception as e:
                 logger.error(f"Failed to connect to wss: {str(e)}", )
                 raise HTTPException(status_code=502, detail="Failed to connect to wss")
@@ -338,7 +342,8 @@ class ChatService:
                 logger.info(f"next wss_url: {self.wss_url}")
                 if not self.ws:
                     try:
-                        self.ws = await websockets.connect(self.wss_url, ping_interval=None, subprotocols=["json.reliable.webpubsub.azure.v1"])
+                        self.ws = await websockets.connect(self.wss_url, ping_interval=None,
+                                                           subprotocols=["json.reliable.webpubsub.azure.v1"])
                     except Exception as e:
                         logger.error(f"Failed to connect to wss: {str(e)}", )
                         raise HTTPException(status_code=502, detail="Failed to connect to wss")
